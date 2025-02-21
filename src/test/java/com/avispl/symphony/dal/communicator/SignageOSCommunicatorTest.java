@@ -25,8 +25,8 @@ public class SignageOSCommunicatorTest {
         communicator = new SignageOSCommunicator();
         communicator.setHost("api.signageos.io");
         communicator.setPort(443);
-        communicator.setLogin("e0c6bffea67a5fda622a");
-        communicator.setPassword("c8fbccac1bb823bd9d9047ccc5e9e2ac3436a671");
+        communicator.setLogin("");
+        communicator.setPassword("");
         communicator.init();
     }
 
