@@ -31,13 +31,13 @@ public class SignageOSCommunicatorTest {
     }
 
     @Test
-    public void testGetMultupleStatistics() throws Exception {
+    public void testGetMultipleStatistics() throws Exception {
         List<Statistics> statistics = communicator.getMultipleStatistics();
         Assertions.assertEquals(1, statistics.size());
     }
 
     @Test
-    public void testRetrieveMultupleStatistics() throws Exception {
+    public void testRetrieveMultipleStatistics() throws Exception {
         List<AggregatedDevice> statistics = communicator.retrieveMultipleStatistics();
         Assertions.assertNotNull(statistics);
         for (int i = 0; i < 5; i++) {

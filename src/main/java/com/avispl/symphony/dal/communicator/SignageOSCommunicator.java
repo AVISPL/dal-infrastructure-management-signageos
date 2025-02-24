@@ -1219,8 +1219,10 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             return;
         }
         logDebugMessage("Processing telemetry temperature information.");
-        String volume = value.at("/data/temperature").asText();
-        if (StringUtils.isNullOrEmpty(volume)) {
+        String temperature = value.at("/data/temperature").asText();
+        Map<String, String> deviceProperties = device.getProperties();
+        if (StringUtils.isNullOrEmpty(temperature)) {
+            deviceProperties.put(Constant.Properties.TEMPERATURE, "N/A");
             logDebugMessage("Unable to get device temperature: temperature cannot be retrieved.");
             return;
         }
@@ -1230,10 +1232,9 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 dynamicStatistics = new HashMap<>();
                 device.setDynamicStatistics(dynamicStatistics);
             }
-            dynamicStatistics.put(Constant.Properties.TEMPERATURE, volume);
+            dynamicStatistics.put(Constant.Properties.TEMPERATURE, temperature);
         } else {
-            Map<String, String> deviceProperties = device.getProperties();
-            deviceProperties.put(Constant.Properties.TEMPERATURE, volume);
+            deviceProperties.put(Constant.Properties.TEMPERATURE, temperature);
         }
     }
 
