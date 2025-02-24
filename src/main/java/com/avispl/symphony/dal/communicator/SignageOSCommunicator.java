@@ -1446,7 +1446,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             return;
         }
         deviceProperties.put(Constant.Properties.TIMEZONE, timezone);
-        deviceProperties.put(Constant.Properties.NTP_SERVER, ntpServer);
+        deviceProperties.put(Constant.Properties.NTP_SERVER, processStringPropertyValue(ntpServer));
     }
 
     /**
@@ -1876,7 +1876,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @return 'N/A' if the value is blank, original value otherwise
      * */
     private String processStringPropertyValue(String value) {
-        if(StringUtils.isNullOrEmpty(value)) {
+        if(StringUtils.isNullOrEmpty(value) || "null".equals(value)) {
             return "N/A";
         }
         return value;
