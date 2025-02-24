@@ -217,7 +217,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                         logDebugMessage("Fetching devices list.");
                         fetchDevices();
                     } catch (Exception e) {
-                        //knownErrors.put(ROOMS_LIST_RETRIEVAL_ERROR_KEY, limitErrorMessageByLength(e.getMessage(), maxErrorLength));
                         logger.error("Error occurred during device list retrieval: " + e.getMessage() + " with cause: " + e.getCause().getMessage(), e);
                     }
 
@@ -990,6 +989,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         if (device == null) {
             return;
         }
+        logDebugMessage("Fetching uptime information.");
         String deviceId = device.getDeviceId();
         validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.UPTIME, uptimeRetrievalInterval, () -> {
             Map<String, String> properties = device.getProperties();
@@ -1035,6 +1035,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         if (device == null) {
             return;
         }
+        logDebugMessage("Fetching screenshots information.");
         String deviceId = device.getDeviceId();
         validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.SCREENSHOTS, screenshotsRetrievalInterval, () -> {
             JsonNode response = doGet(String.format(Constant.URI.SCREENSHOT, deviceId, numberOfScreenshots), JsonNode.class);
@@ -1068,6 +1069,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         if (device == null) {
             return;
         }
+        logDebugMessage("Fetching action logs information.");
         String deviceId = device.getDeviceId();
         validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.ACTION_LOGS, actionLogsRetrievalInterval, () -> {
             JsonNode response = doGet(String.format(Constant.URI.ACTION_LOG, deviceId, numberOfActionLogs), JsonNode.class);
@@ -1103,6 +1105,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         if (device == null) {
             return;
         }
+        logDebugMessage("Fetching storage information.");
         String deviceId = device.getDeviceId();
 
         validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.STORAGE, storageRetrievalInterval, () -> {
@@ -1169,6 +1172,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         if (device == null) {
             return;
         }
+        logDebugMessage("Fetching VPN information.");
         String deviceId = device.getDeviceId();
         validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.VPN, vpnRetrievalInterval, () -> {
             Map<String, String> properties = device.getProperties();
@@ -1188,6 +1192,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         if (device == null) {
             return;
         }
+        logDebugMessage("Fetching telemetry information.");
         String deviceId = device.getDeviceId();
         validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.TELEMETRY, telemetrySettingsRetrievalInterval, () -> {
             for (TelemetrySetting setting: TelemetrySetting.values()) {
@@ -1213,6 +1218,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryTemperature is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry temperature information.");
         String volume = value.at("/data/temperature").asText();
         if (StringUtils.isNullOrEmpty(volume)) {
             logDebugMessage("Unable to get device temperature: temperature cannot be retrieved.");
@@ -1243,6 +1249,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryVolume is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry volume information.");
         String volume = value.at("/data/volume").asText();
         if (StringUtils.isNullOrEmpty(volume)) {
             logDebugMessage("Unable to get device volume level: volume cannot be retrieved.");
@@ -1263,6 +1270,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryBrightness is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry brightness information.");
         String brightness = value.at("/data/brightness").asText();
         if (StringUtils.isNullOrEmpty(brightness)) {
             logDebugMessage("Unable to get device brightness level: brightness cannot be retrieved.");
@@ -1284,6 +1292,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryResolution is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry resolution information.");
         String height = value.at("/data/height").asText();
         String width = value.at("/data/width").asText();
         String framerate = value.at("/data/framerate").asText();
@@ -1316,6 +1325,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryOrientation is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry orientation information.");
         String orientation = value.at("/data/orientation").asText();
         if (StringUtils.isNullOrEmpty(orientation)) {
             logDebugMessage("Unable to get device orientation: orientation cannot be retrieved.");
@@ -1337,6 +1347,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryRemoteControl is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry remote control information.");
         String remoteControl = value.at("/data/enabled").asText();
         if (StringUtils.isNullOrEmpty(remoteControl)) {
             logDebugMessage("Unable to get device remoteControl: remoteControl cannot be retrieved.");
@@ -1357,6 +1368,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryFrontDisplayVersion is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry front display version information.");
         String version = value.at("/data/version").asText();
         String versionNumber = value.at("/data/versionNumber").asText();
         if (StringUtils.isNullOrEmpty(version) && StringUtils.isNullOrEmpty(versionNumber)) {
@@ -1378,6 +1390,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryApplicationVersion is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry application version information.");
         String version = value.at("/data/version").asText();
         String versionNumber = value.at("/data/versionNumber").asText();
         if (StringUtils.isNullOrEmpty(version) && StringUtils.isNullOrEmpty(versionNumber)) {
@@ -1400,6 +1413,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryDebug is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry debug information.");
         String appletEnabled = value.at("/data/appletEnabled").asText();
         String nativeEnabled = value.at("/data/nativeEnabled").asText();
         if (StringUtils.isNullOrEmpty(appletEnabled) && StringUtils.isNullOrEmpty(nativeEnabled)) {
@@ -1424,6 +1438,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryDateTime is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry date time information.");
         String timezone = value.at("/data/timezone").asText();
         String ntpServer = value.at("/data/ntpServer").asText();
         if (StringUtils.isNullOrEmpty(timezone) && StringUtils.isNullOrEmpty(ntpServer)) {
@@ -1462,6 +1477,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryProxy is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry proxy information.");
         String enabled = value.at("/data/enabled").asText();
         String uri = value.at("/data/uri").asText();
         if (StringUtils.isNullOrEmpty(enabled) && StringUtils.isNullOrEmpty(uri)) {
@@ -1483,6 +1499,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("TelemetryWiFiStrength is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
+        logDebugMessage("Processing telemetry wifi strength information.");
         String wifiStrength = value.at("/data/strength").asText();
         if (StringUtils.isNullOrEmpty(wifiStrength)) {
             logDebugMessage("Unable to get device wifi strength: wifi strength version cannot be retrieved.");
@@ -1547,6 +1564,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 populateWiFiStrengthInformation(value, deviceProperties);
                 break;
             default:
+                logDebugMessage("Unknown telemetry setting type: " + setting);
                 break;
         }
     }
