@@ -48,12 +48,12 @@ public interface Constant {
         String LAST_MONITORING_CYCLE_DURATION_S = "LastMonitoringCycleDuration(s)";
         String MONITORED_DEVICES_TOTAL = "MonitoredDevicesTotal";
 
-        String STORAGE_INTERNAL_CAPACITY = "Storage#InternalCapacity(B)";
+        String STORAGE_INTERNAL_CAPACITY = "Storage#InternalCapacity(MB)";
         String STORAGE_INTERNAL_USED = "Storage#InternalUsed(%)";
-        String STORAGE_INTERNAL_AVAILABLE = "Storage#InternalAvailable(B)";
-        String STORAGE_REMOVABLE_CAPACITY = "Storage#RemovableCapacity(B)";
+        String STORAGE_INTERNAL_AVAILABLE = "Storage#InternalAvailable(MB)";
+        String STORAGE_REMOVABLE_CAPACITY = "Storage#RemovableCapacity(MB)";
         String STORAGE_REMOVABLE_USED = "Storage#RemovableUsed(%)";
-        String STORAGE_REMOVABLE_AVAILABLE = "Storage#RemovableAvailable(B)";
+        String STORAGE_REMOVABLE_AVAILABLE = "Storage#RemovableAvailable(MB)";
         String STORAGE_LAST_UPDATED = "Storage#LastUpdated";
 
         String VOLUME = "Configuration#Volume";
@@ -86,8 +86,8 @@ public interface Constant {
         String DOWNTIME = "Uptime#Downtime";
         String UPTIME_TOTAL_S = "Uptime#Total(s)";
         String UPTIME_TOTAL = "Uptime#Total";
-        String UPTIME_SINCE = "Uptime#DateSince";
-        String UPTIME_UNTIL = "Uptime#DateUntil";
+        String UPTIME_SINCE = "Uptime#DateFrom";
+        String UPTIME_UNTIL = "Uptime#DateTo";
         String UPTIME_AVAILABILITY = "Uptime#Availability(%)";
         String SCREENSHOT_TAKEN_AT = "Screenshot[%s]#TakenAt";
         String SCREENSHOT_URI = "Screenshot[%s]#URI";

@@ -1150,10 +1150,10 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 logger.error(String.format("Unable to calculate storage used percentage for internal (%s, %s) and external (%s, %s) storages, skipping.",
                         internalFreeSpace, internalCapacity, removableFreeSpace, removableCapacity), e);
             }
-            properties.put(Constant.Properties.STORAGE_INTERNAL_CAPACITY, internalCapacity);
-            properties.put(Constant.Properties.STORAGE_INTERNAL_AVAILABLE, internalFreeSpace);
-            properties.put(Constant.Properties.STORAGE_REMOVABLE_CAPACITY, removableCapacity);
-            properties.put(Constant.Properties.STORAGE_REMOVABLE_AVAILABLE, removableFreeSpace);
+            properties.put(Constant.Properties.STORAGE_INTERNAL_CAPACITY, convertByteToMegabyte(internalCapacity));
+            properties.put(Constant.Properties.STORAGE_INTERNAL_AVAILABLE, convertByteToMegabyte(internalFreeSpace));
+            properties.put(Constant.Properties.STORAGE_REMOVABLE_CAPACITY, convertByteToMegabyte(removableCapacity));
+            properties.put(Constant.Properties.STORAGE_REMOVABLE_AVAILABLE, convertByteToMegabyte(removableFreeSpace));
             properties.put(Constant.Properties.STORAGE_LAST_UPDATED, updatedAt);
         });
     }
@@ -1201,7 +1201,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                     JsonNode response = doGet(String.format(Constant.URI.TELEMETRY, deviceId, telemetrySettingName), JsonNode.class);
                     populateTelemetryDetails(setting, response, device);
                 } catch (Exception e) {
-                    logger.error(String.format("Unable to retrieve %s telemetry settings for device with id %s", telemetrySettingName, deviceId));
+                    logger.error(String.format("Unable to retrieve %s telemetry settings for device with id %s", telemetrySettingName, deviceId), e);
                 }
             }
         });
@@ -1519,7 +1519,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
     private void populateTelemetryDetails(TelemetrySetting setting, JsonNode value, AggregatedDevice device) {
         if (value == null || value.at("/data").isEmpty()) {
             logDebugMessage(String.format("Unable to retrieve %s setting for device with id %s", setting, device.getDeviceId()));
-            return;
         }
         Map<String, String> deviceProperties = device.getProperties();
         List<AdvancedControllableProperty> controls = device.getControllableProperties();
@@ -1907,5 +1906,19 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         }
         processor.process();
         timestamps.put(propertyGroup, System.currentTimeMillis());
+    }
+
+    /**
+     * Convert byte value to megabyte value
+     *
+     * @param bytes string value in bytes to convert to megabytes
+     * @return String value in megabytes
+     * */
+    private String convertByteToMegabyte(String bytes) {
+        long bytesLong = Long.parseLong(bytes);
+        if (bytesLong <= 0L) {
+            return bytes;
+        }
+        return String.valueOf((bytesLong / 1024L) / 1024L);
     }
 }
