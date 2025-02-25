@@ -60,7 +60,6 @@ public interface Constant {
 
         String VOLUME = "Configuration#Volume";
         String TEMPERATURE = "Temperature";
-        String INPUT_SOURCE = "Configuration#InputSource";
         String BRIGHTNESS = "Configuration#Brightness";
         String SCREEN_RESOLUTION = "Configuration#Resolution";
         String SCREEN_FRAMERATE = "Configuration#Framerate";
@@ -113,24 +112,6 @@ public interface Constant {
         String ACTION_LOGS = "ActionLogs";
         String VPN = "VPN";
         String UPTIME = "Uptime";
-        String METADATA = "Metadata";
-        String TELEMETRY = "Telemetry";
-        String TELEMETRY_VOLUME = "TelemetryVolume";
-        String TELEMETRY_BRIGHTNESS = "TelemetryBrightness";
-        String TELEMETRY_RESOLUTION = "TelemetryResolution"; //framerate, orientation and resolution
-        String TELEMETRY_REMOTE_CONTROL = "TelemetryRemoteControl";
-        String TELEMETRY_APPLICATION_VERSION = "TelemetryApplicationVersion";
-        String TELEMETRY_FRONT_DISPLAY_VERSION = "TelemetryFrontDisplayVersion";
-        String TELEMETRY_FIRMWARE_VERSION = "TelemetryFirmwareVersion";
-        String TELEMETRY_DEBUG = "TelemetryDebug";
-        String TELEMETRY_DATE_TIME = "TelemetryDateTime";
-        String TELEMETRY_POWER_ACTIONS_SCHEDULE = "TelemetryPowerActionsSchedule";
-        String TELEMETRY_TEMPERATURE = "TelemetryTemperature";
-        String TELEMETRY_ONLINE_STATUS = "TelemetryOnlineStatus";
-        String TELEMETRY_BUNDLED_APPLET = "TelemetryBundledApplet";
-        String TELEMETRY_PROXY = "TelemetryProxy";
-        String TELEMETRY_WIFI_STRENGTH = "TelemetryWiFiStrength";
-        String TELEMETRY_STORAGE = "TelemetryStorage";
         String ALL = "All";
     }
 }

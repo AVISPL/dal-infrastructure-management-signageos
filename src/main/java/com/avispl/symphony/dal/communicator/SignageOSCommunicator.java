@@ -507,6 +507,24 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
     }
 
     /**
+     * Retrieves {@link #assignedAppletsRetrievalInterval}
+     *
+     * @return value of {@link #assignedAppletsRetrievalInterval}
+     */
+    public Integer getAssignedAppletsRetrievalInterval() {
+        return assignedAppletsRetrievalInterval;
+    }
+
+    /**
+     * Sets {@link #assignedAppletsRetrievalInterval} value
+     *
+     * @param assignedAppletsRetrievalInterval new value of {@link #assignedAppletsRetrievalInterval}
+     */
+    public void setAssignedAppletsRetrievalInterval(Integer assignedAppletsRetrievalInterval) {
+        this.assignedAppletsRetrievalInterval = assignedAppletsRetrievalInterval;
+    }
+
+    /**
      * Retrieves {@link #telemetrySettingsRetrievalInterval}
      *
      * @return value of {@link #telemetrySettingsRetrievalInterval}
@@ -613,24 +631,8 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
     public void setUptimeRetrievalInterval(Integer uptimeRetrievalInterval) {
         this.uptimeRetrievalInterval = uptimeRetrievalInterval;
     }
-
-    /**
-     * Retrieves {@link #assignedAppletsRetrievalInterval}
-     *
-     * @return value of {@link #assignedAppletsRetrievalInterval}
-     */
-    public Integer getAssignedAppletsRetrievalInterval() {
-        return assignedAppletsRetrievalInterval;
-    }
-
-    /**
-     * Sets {@link #assignedAppletsRetrievalInterval} value
-     *
-     * @param assignedAppletsRetrievalInterval new value of {@link #assignedAppletsRetrievalInterval}
-     */
-    public void setAssignedAppletsRetrievalInterval(Integer assignedAppletsRetrievalInterval) {
-        this.assignedAppletsRetrievalInterval = assignedAppletsRetrievalInterval;
-    }
+    
+    
 
     /**
      * Retrieves {@link #requestPageSize}
@@ -1276,7 +1278,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param device AggregatedDevice instance to fetch data for and to save it to
      * */
     private void populateDeviceTemperature(JsonNode value, AggregatedDevice device) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_TEMPERATURE) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        if (!displayPropertyGroups.contains(TelemetrySetting.TEMPERATURE.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryTemperature is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
@@ -1308,7 +1310,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param deviceControls device controls to add volume slider to
      * */
     private void populateDeviceVolume(JsonNode value, Map<String, String> deviceProperties, List<AdvancedControllableProperty> deviceControls) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_VOLUME) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        if (!displayPropertyGroups.contains(TelemetrySetting.VOLUME.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryVolume is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
@@ -1329,7 +1331,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param deviceProperties to save property to
      * */
     private void populateDeviceBrightness(JsonNode value, Map<String, String> deviceProperties) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_BRIGHTNESS) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        if (!displayPropertyGroups.contains(TelemetrySetting.BRIGHTNESS.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryBrightness is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
@@ -1351,7 +1353,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param deviceControls device controls list to save resolution controls to
      * */
     private void populateDeviceResolution(JsonNode value, Map<String, String> deviceProperties, List<AdvancedControllableProperty> deviceControls) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_RESOLUTION) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        if (!displayPropertyGroups.contains(TelemetrySetting.RESOLUTION.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryResolution is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
@@ -1384,7 +1386,9 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param deviceControls device controls list to save resolution controls to
      * */
     private void populateDeviceOrientation(JsonNode value, Map<String, String> deviceProperties, List<AdvancedControllableProperty> deviceControls) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_RESOLUTION) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        // It's not a mistake to use RESOLUTION here - pacing should be done along with the rest of resolution properties since command controls are sent together
+        // and must be in sync.
+        if (!displayPropertyGroups.contains(TelemetrySetting.RESOLUTION.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryOrientation is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
@@ -1406,7 +1410,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param deviceControls device controls list to save resolution controls to
      * */
     private void populateDeviceRemoteControl(JsonNode value, Map<String, String> deviceProperties, List<AdvancedControllableProperty> deviceControls) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_REMOTE_CONTROL) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        if (!displayPropertyGroups.contains(TelemetrySetting.REMOTE_CONTROL.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryRemoteControl is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
@@ -1427,7 +1431,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param deviceProperties device property map to save properties to
      * */
     private void populateDeviceFrontDisplayVersion(JsonNode value, Map<String, String> deviceProperties) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_FRONT_DISPLAY_VERSION) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        if (!displayPropertyGroups.contains(TelemetrySetting.FRONT_DISPLAY_VERSION.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryFrontDisplayVersion is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
@@ -1449,7 +1453,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param deviceProperties device property map to save properties to
      * */
     private void populateDeviceApplicationVersion(JsonNode value, Map<String, String> deviceProperties) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_APPLICATION_VERSION) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        if (!displayPropertyGroups.contains(TelemetrySetting.APPLICATION_VERSION.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryApplicationVersion is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
@@ -1472,7 +1476,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param controls device controls list to save resolution controls to
      * */
     private void populateDebugInformation(JsonNode value, Map<String, String> deviceProperties, List<AdvancedControllableProperty> controls) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_DEBUG) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        if (!displayPropertyGroups.contains(TelemetrySetting.DEBUG.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryDebug is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
@@ -1497,7 +1501,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param deviceProperties device property map to save properties to
      * */
     private void populateDateTimeInformation(JsonNode value, Map<String, String> deviceProperties) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_DATE_TIME) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        if (!displayPropertyGroups.contains(TelemetrySetting.DATETIME.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryDateTime is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
@@ -1536,7 +1540,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param deviceProperties device property map to save properties to
      * */
     private void populateProxyInformation(JsonNode value, Map<String, String> deviceProperties) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_PROXY) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        if (!displayPropertyGroups.contains(TelemetrySetting.PROXY.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryProxy is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
@@ -1558,31 +1562,11 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @param deviceProperties device property map to save properties to
      * */
     private void populateWiFiStrengthInformation(JsonNode value, Map<String, String> deviceProperties) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_WIFI_STRENGTH) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+        if (!displayPropertyGroups.contains(TelemetrySetting.WIFI_STRENGTH.getName()) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
             logDebugMessage("TelemetryWiFiStrength is not included to the list of filtering groups: " + displayPropertyGroups);
             return;
         }
         logDebugMessage("Processing telemetry wifi strength information.");
-        String wifiStrength = value.at("/data/strength").asText();
-        if (StringUtils.isNullOrEmpty(wifiStrength)) {
-            logDebugMessage("Unable to get device wifi strength: wifi strength version cannot be retrieved.");
-            return;
-        }
-        deviceProperties.put(Constant.Properties.WIFI_STRENGTH, wifiStrength);
-    }
-
-    /**
-     * Get device wifi strength level.
-     *
-     * @param value json value of original telemetry response
-     * @param deviceProperties device property map to save properties to
-     * */
-    private void populateBundledAppletInformation(JsonNode value, Map<String, String> deviceProperties) {
-        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_BUNDLED_APPLET) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
-            logDebugMessage("TelemetryBundledApplet is not included to the list of filtering groups: " + displayPropertyGroups);
-            return;
-        }
-        logDebugMessage("Processing telemetry bundled applet strength information.");
         String wifiStrength = value.at("/data/strength").asText();
         if (StringUtils.isNullOrEmpty(wifiStrength)) {
             logDebugMessage("Unable to get device wifi strength: wifi strength version cannot be retrieved.");
@@ -1644,9 +1628,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 break;
             case WIFI_STRENGTH:
                 populateWiFiStrengthInformation(value, deviceProperties);
-                break;
-            case BUNDLED_APPLET:
-                populateBundledAppletInformation(value, deviceProperties);
                 break;
             default:
                 logDebugMessage("Unknown telemetry setting type: " + setting);
