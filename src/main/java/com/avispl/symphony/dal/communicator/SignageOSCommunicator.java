@@ -27,6 +27,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.impl.client.HttpClients;
+import org.openjdk.jol.info.ClassLayout;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpRequest;
@@ -259,6 +260,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                                 fetchActionLogs(aggregatedDevice);
                                 fetchVPN(aggregatedDevice);
                                 fetchUptime(aggregatedDevice);
+                                fetchApplet(aggregatedDevice);
                                 fetchTelemetryRecords(aggregatedDevice);
                             } catch (Exception e) {
                                 logger.error(String.format("Exception during SignageOS '%s' data processing.", aggregatedDevice.getDeviceName()), e);
@@ -427,6 +429,13 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * {@link #vpnRetrievalInterval}, {@link #uptimeRetrievalInterval}
      * */
     ConcurrentHashMap<String, ConcurrentHashMap<String, Long>> propertyGroupsRetrievedTimestamps = new ConcurrentHashMap<>();
+    /**
+     * Property group retrieval status, per device.
+     * Contains key pairs like
+     * "PropertyGroupStatus#AssignedApplets":"OK"
+     * "PropertyGroupStatus#VPN":"Failed"
+     * */
+    ConcurrentHashMap<String, ConcurrentHashMap<String, String>> devicePropertyGroupRetrievalStatus = new ConcurrentHashMap<>();
 
     /**
      * Latest metadata retrieval timestamp value, to grant pacing based on {@link #metadataRetrievalInterval}
@@ -460,6 +469,10 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * Device uptime retrieval interval
      * */
     private Integer uptimeRetrievalInterval = 30000;
+    /**
+     * Device assigned applets retrieval interval
+     * */
+    private Integer assignedAppletsRetrievalInterval = 30000;
 
     /**
      * Default communicator constructor.
@@ -599,6 +612,24 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      */
     public void setUptimeRetrievalInterval(Integer uptimeRetrievalInterval) {
         this.uptimeRetrievalInterval = uptimeRetrievalInterval;
+    }
+
+    /**
+     * Retrieves {@link #assignedAppletsRetrievalInterval}
+     *
+     * @return value of {@link #assignedAppletsRetrievalInterval}
+     */
+    public Integer getAssignedAppletsRetrievalInterval() {
+        return assignedAppletsRetrievalInterval;
+    }
+
+    /**
+     * Sets {@link #assignedAppletsRetrievalInterval} value
+     *
+     * @param assignedAppletsRetrievalInterval new value of {@link #assignedAppletsRetrievalInterval}
+     */
+    public void setAssignedAppletsRetrievalInterval(Integer assignedAppletsRetrievalInterval) {
+        this.assignedAppletsRetrievalInterval = assignedAppletsRetrievalInterval;
     }
 
     /**
@@ -847,7 +878,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         }
         dynamicStatistics.put(MONITORED_DEVICES_TOTAL, String.valueOf(aggregatedDevices.size()));
 
-        //properties.put("RunnerSize(b)", "12824");
+        properties.put("RunnerSize(B)", String.valueOf(ClassLayout.parseInstance(this).toPrintable().length()));
         return statistics;
     }
 
@@ -991,9 +1022,8 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         }
         logDebugMessage("Fetching uptime information.");
         String deviceId = device.getDeviceId();
-        validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.UPTIME, uptimeRetrievalInterval, () -> {
-            Map<String, String> properties = device.getProperties();
-
+        Map<String, String> properties = device.getProperties();
+        validateAndProcessPropertyRetrieval(deviceId, properties, Constant.PropertyGroups.UPTIME, uptimeRetrievalInterval, () -> {
             JsonNode response = doGet(String.format(Constant.URI.UPTIME, deviceId), JsonNode.class);
             String uptime = response.at("/uptime").asText();
             String downtime = response.at("/downtime").asText();
@@ -1021,6 +1051,42 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
     }
 
     /**
+     * Fetch applets assigned to the device, with applet uid, name and activity state.
+     * Applets are displayed as Applet{AppletName}#{PropertyName}
+     *
+     * @param device to fetch applets for
+     * */
+    private void fetchApplet(AggregatedDevice device) throws Exception {
+        if (!displayPropertyGroups.contains(Constant.PropertyGroups.ASSIGNED_APPLETS) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+            logDebugMessage("AssignedApplets is not included to the list of filtering groups: " + displayPropertyGroups);
+            return;
+        }
+        if (device == null) {
+            return;
+        }
+        logDebugMessage("Fetching assigned applets information.");
+        Map<String, String> properties = device.getProperties();
+        String deviceId = device.getDeviceId();
+        validateAndProcessPropertyRetrieval(deviceId, properties, Constant.PropertyGroups.ASSIGNED_APPLETS, assignedAppletsRetrievalInterval, () -> {
+            JsonNode response = doGet(String.format(Constant.URI.DEVICE_APPLET, deviceId), JsonNode.class);
+            ArrayNode appletArrays = (ArrayNode) response.at("/items");
+            for (JsonNode appletData : appletArrays) {
+                String appletUid = appletData.at("/appletUid").asText();
+                JsonNode appletResponse = doGet(String.format(Constant.URI.APPLET, appletUid), JsonNode.class);
+                if (appletResponse == null || appletResponse.isEmpty()) {
+                    continue;
+                }
+                String appletName = appletResponse.at("/name").asText();
+                String groupName = String.format("Applet[%s]#", appletName);
+                properties.put(groupName + "Name", appletName);
+                properties.put(groupName + "UID", appletUid);
+                properties.put(groupName + "CreatedAt", appletResponse.at("/createdAt").asText());
+                properties.put(groupName + "Active", appletData.at("/active").asText());
+            }
+        });
+    }
+
+    /**
      * Get latest screenshot values for the device. Number of screenshots is limited by {@link #numberOfScreenshots}
      * and can be configured through adapter configuration properties.
      *
@@ -1037,13 +1103,13 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         }
         logDebugMessage("Fetching screenshots information.");
         String deviceId = device.getDeviceId();
-        validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.SCREENSHOTS, screenshotsRetrievalInterval, () -> {
+        Map<String, String> properties = device.getProperties();
+        validateAndProcessPropertyRetrieval(deviceId, properties, Constant.PropertyGroups.SCREENSHOTS, screenshotsRetrievalInterval, () -> {
             JsonNode response = doGet(String.format(Constant.URI.SCREENSHOT, deviceId, numberOfScreenshots), JsonNode.class);
             if (!response.has("items")) {
                 logDebugMessage("Unable to retrieve screenshots");
                 return;
             }
-            Map<String, String> properties = device.getProperties();
             ArrayNode items = (ArrayNode) response.at("/items");
             int i = 1;
             for (JsonNode node: items) {
@@ -1071,13 +1137,13 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         }
         logDebugMessage("Fetching action logs information.");
         String deviceId = device.getDeviceId();
-        validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.ACTION_LOGS, actionLogsRetrievalInterval, () -> {
+        Map<String, String> properties = device.getProperties();
+        validateAndProcessPropertyRetrieval(deviceId, properties, Constant.PropertyGroups.ACTION_LOGS, actionLogsRetrievalInterval, () -> {
             JsonNode response = doGet(String.format(Constant.URI.ACTION_LOG, deviceId, numberOfActionLogs), JsonNode.class);
             if (!response.has("items")) {
                 logDebugMessage("Unable to retrieve action logs");
                 return;
             }
-            Map<String, String> properties = device.getProperties();
             ArrayNode items = (ArrayNode) response.at("/items");
             int i = 1;
             for (JsonNode node: items) {
@@ -1107,8 +1173,8 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         }
         logDebugMessage("Fetching storage information.");
         String deviceId = device.getDeviceId();
-
-        validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.STORAGE, storageRetrievalInterval, () -> {
+        Map<String, String> properties = device.getProperties();
+        validateAndProcessPropertyRetrieval(deviceId, properties, Constant.PropertyGroups.STORAGE, storageRetrievalInterval, () -> {
             JsonNode response = doGet(String.format(Constant.URI.STORAGE, deviceId), JsonNode.class);
             String internalCapacity = response.at("/internal/capacity").asText();
             String internalFreeSpace = response.at("/internal/freeSpace").asText();
@@ -1116,7 +1182,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             String removableFreeSpace = response.at("/removable/freeSpace").asText();
             String updatedAt = response.at("/updatedAt").asText();
 
-            Map<String, String> properties = device.getProperties();
             Map<String, String> dynamicStatistics = device.getDynamicStatistics();
             boolean internalHistorical = historicalProperties.contains(Constant.Properties.STORAGE_INTERNAL_USED);
             boolean removableHistorical = historicalProperties.contains(Constant.Properties.STORAGE_REMOVABLE_USED);
@@ -1174,8 +1239,8 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         }
         logDebugMessage("Fetching VPN information.");
         String deviceId = device.getDeviceId();
-        validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.VPN, vpnRetrievalInterval, () -> {
-            Map<String, String> properties = device.getProperties();
+        Map<String, String> properties = device.getProperties();
+        validateAndProcessPropertyRetrieval(deviceId, properties, Constant.PropertyGroups.VPN, vpnRetrievalInterval, () -> {
             JsonNode response = doGet(String.format(Constant.URI.VPN, deviceId), JsonNode.class);
             String vpnEnabled = response.at("/items/0/enabled").asText();
             properties.put(Constant.Properties.VPN_ENABLED, processStringPropertyValue(vpnEnabled));
@@ -1194,17 +1259,14 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         }
         logDebugMessage("Fetching telemetry information.");
         String deviceId = device.getDeviceId();
-        validateAndProcessPropertyRetrieval(deviceId, Constant.PropertyGroups.TELEMETRY, telemetrySettingsRetrievalInterval, () -> {
-            for (TelemetrySetting setting: TelemetrySetting.values()) {
+        Map<String, String> properties = device.getProperties();
+        for (TelemetrySetting setting: TelemetrySetting.values()) {
+            validateAndProcessPropertyRetrieval(deviceId, properties, setting.getName(), telemetrySettingsRetrievalInterval, () -> {
                 String telemetrySettingName = setting.name();
-                try {
-                    JsonNode response = doGet(String.format(Constant.URI.TELEMETRY, deviceId, telemetrySettingName), JsonNode.class);
-                    populateTelemetryDetails(setting, response, device);
-                } catch (Exception e) {
-                    logger.error(String.format("Unable to retrieve %s telemetry settings for device with id %s", telemetrySettingName, deviceId), e);
-                }
-            }
-        });
+                JsonNode response = doGet(String.format(Constant.URI.TELEMETRY, deviceId, telemetrySettingName), JsonNode.class);
+                populateTelemetryDetails(setting, response, device);
+            });
+        }
     }
 
     /**
@@ -1510,6 +1572,26 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
     }
 
     /**
+     * Get device wifi strength level.
+     *
+     * @param value json value of original telemetry response
+     * @param deviceProperties device property map to save properties to
+     * */
+    private void populateBundledAppletInformation(JsonNode value, Map<String, String> deviceProperties) {
+        if (!displayPropertyGroups.contains(Constant.PropertyGroups.TELEMETRY_BUNDLED_APPLET) && !displayPropertyGroups.contains(Constant.PropertyGroups.ALL)) {
+            logDebugMessage("TelemetryBundledApplet is not included to the list of filtering groups: " + displayPropertyGroups);
+            return;
+        }
+        logDebugMessage("Processing telemetry bundled applet strength information.");
+        String wifiStrength = value.at("/data/strength").asText();
+        if (StringUtils.isNullOrEmpty(wifiStrength)) {
+            logDebugMessage("Unable to get device wifi strength: wifi strength version cannot be retrieved.");
+            return;
+        }
+        deviceProperties.put(Constant.Properties.WIFI_STRENGTH, wifiStrength);
+    }
+
+    /**
      * Route telemetry data filtering, based on {@link TelemetrySetting} type.
      *
      * @param setting instance of {@link TelemetrySetting} to properly type and filter the telemetry response
@@ -1562,6 +1644,9 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 break;
             case WIFI_STRENGTH:
                 populateWiFiStrengthInformation(value, deviceProperties);
+                break;
+            case BUNDLED_APPLET:
+                populateBundledAppletInformation(value, deviceProperties);
                 break;
             default:
                 logDebugMessage("Unknown telemetry setting type: " + setting);
@@ -1887,12 +1972,13 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * executing an operation and saving new timestamp for an operation
      *
      * @param deviceId to execute operation and save caches for
+     * @param properties device properties for setting generic status properties
      * @param propertyGroup group of properties that must be retrieved during current operation execution
      * @param interval amount of time that must pass before executing new operation of the same type
      * @param processor operation to be executed
      * @throws Exception if API communication errors occur
      * */
-    private void validateAndProcessPropertyRetrieval(String deviceId, String propertyGroup, Integer interval, PropertyGroupRetrievalProcessor processor) throws Exception {
+    private void validateAndProcessPropertyRetrieval(String deviceId, Map<String, String> properties, String propertyGroup, Integer interval, PropertyGroupRetrievalProcessor processor) throws Exception {
         ConcurrentHashMap<String, Long> timestamps = propertyGroupsRetrievedTimestamps.get(deviceId);
         Long groupRetrievalTimestamp = timestamps.get(propertyGroup);
         if (groupRetrievalTimestamp == null) {
@@ -1904,8 +1990,15 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage(String.format("%s retrieval for device with id %s is in the cooldown. Remaining timeout is %s", propertyGroup, deviceId, interval - remainingTimeout));
             return;
         }
-        processor.process();
-        timestamps.put(propertyGroup, System.currentTimeMillis());
+        String propertyStatusName = String.format("ActivePropertyGroupStatus#%s", propertyGroup);
+        try {
+            processor.process();
+            timestamps.put(propertyGroup, System.currentTimeMillis());
+            properties.put(propertyStatusName, "OK");
+        } catch (Exception e) {
+            properties.put(propertyStatusName, "Failed");
+            logger.error(String.format("Unable to retrieve data for device with id %s and property group %s", deviceId, propertyGroup));
+        }
     }
 
     /**

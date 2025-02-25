@@ -31,6 +31,8 @@ public interface Constant {
         String TELEMETRY = "v1/device/%s/telemetry/%s/latest"; //2nd parameter - telemetry type
         String UPTIME = "v1/uptime?deviceUid=%s";
         String DEBUG = "v1/device/%s/debug";
+        String DEVICE_APPLET = "v1/device/%s/applet";
+        String APPLET = "v1/applet/%s";
     }
 
     /**

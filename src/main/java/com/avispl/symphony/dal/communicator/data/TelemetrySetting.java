@@ -41,4 +41,13 @@ public enum TelemetrySetting {
     TelemetrySetting(String name) {
         this.name = name;
     }
+
+    /**
+     * Retrieves {@link #name}
+     *
+     * @return value of {@link #name}
+     */
+    public String getName() {
+        return name;
+    }
 }
