@@ -84,12 +84,12 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             try {
                 response = execution.execute(request, body);
 
-                if (response == null) {
+                int statusCode = response.getRawStatusCode();
+                if (response.getStatusCode().is5xxServerError()) {
                     failedAPI = true;
                 } else {
                     failedAPI = false;
                 }
-                int statusCode = response.getRawStatusCode();
                 if (statusCode == 403 || statusCode == 401) {
                     failedLogin = true;
                 } else {
@@ -104,7 +104,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 HttpHeaders headers = response.getHeaders();
                 StringBuilder link = new StringBuilder();
                 boolean containsLink = false;
-                if (headers != null && headers.containsKey("Link")) {
+                if (headers.containsKey("Link")) {
                     containsLink = true;
                     link.append(headers.get("Link").get(0));
                 }
@@ -992,20 +992,21 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * @return request url with configured filter query string values
      * */
     private String buildFilteredUrl(String url) {
-        String filteredUrl = url;
+        StringBuilder requestUrl = new StringBuilder();
+        requestUrl.append(url);
         if (!brandFilter.isEmpty()) {
-            filteredUrl += "&brand=" + String.join(",",brandFilter);
+            requestUrl.append("&brand=").append(String.join(",",brandFilter));
         }
         if (!modelFilter.isEmpty()) {
-            filteredUrl += "&model=" + String.join(",", modelFilter);
+            requestUrl.append("&model=").append(String.join(",", modelFilter));
         }
         if (!applicationTypeFilter.isEmpty()) {
-            filteredUrl += "&applicationType=" + String.join(",", applicationTypeFilter);
+            requestUrl.append("&applicationType=").append(String.join(",", applicationTypeFilter));
         }
         if (!locationUIDFilter.isEmpty()) {
-            filteredUrl += "&locationUid=" + String.join(",", locationUIDFilter);
+            requestUrl.append("&locationUid=").append(String.join(",", locationUIDFilter));
         }
-        return filteredUrl;
+        return requestUrl.toString();
     }
 
     /**
@@ -1027,9 +1028,11 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         Map<String, String> properties = device.getProperties();
         validateAndProcessPropertyRetrieval(deviceId, properties, Constant.PropertyGroups.UPTIME, uptimeRetrievalInterval, () -> {
             JsonNode response = doGet(String.format(Constant.URI.UPTIME, deviceId), JsonNode.class);
-            String uptime = response.at("/uptime").asText();
-            String downtime = response.at("/downtime").asText();
-            String total = response.at("/total").asText();
+            // Values may contain periods, so to save resources on converting back and forth and doing unnecessary data mapping -
+            // we split data on period substring and keep 0th element
+            String uptime = response.at("/uptime").asText().split("\\.")[0];
+            String downtime = response.at("/downtime").asText().split("\\.")[0];
+            String total = response.at("/total").asText().split("\\.")[0];
             String availabilityPercent = response.at("/availabilityPercent").asText();
             String since = response.at("/since").asText();
             String until = response.at("/until").asText();
@@ -1977,7 +1980,9 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             timestamps.put(propertyGroup, System.currentTimeMillis());
             properties.put(propertyStatusName, "OK");
         } catch (Exception e) {
+            // TODO: remove property group if failed
             properties.put(propertyStatusName, "Failed");
+            properties.keySet().removeIf(s -> s.startsWith(propertyGroup + "#"));
             logger.error(String.format("Unable to retrieve data for device with id %s and property group %s", deviceId, propertyGroup));
         }
     }
