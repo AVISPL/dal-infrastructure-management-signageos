@@ -21,11 +21,11 @@ models:
         ConnectionMethod: at("/connectionMethod")
         System#ApplicationType: at("/applicationType")
         System#FirmwareVersion: at("/firmwareVersion")
-        Configuration#AppRestart: Restart
-        Configuration#Reboot: Reboot
-        Configuration#AppletReload: Reload
-        Configuration#AppletRefresh: Refresh
-        Configuration#Screenshot: Screenshot
+        Configuration#AppRestart: N/A
+        Configuration#Reboot: N/A
+        Configuration#AppletReload: N/A
+        Configuration#AppletRefresh: N/A
+        Configuration#Screenshot: N/A
       control:
         Configuration#Screenshot:
           type: Button

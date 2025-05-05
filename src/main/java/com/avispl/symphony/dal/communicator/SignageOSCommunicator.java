@@ -23,15 +23,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.config.CookieSpecs;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.impl.client.HttpClients;
 import org.openjdk.jol.info.ClassLayout;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpRequest;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.*;
 import org.springframework.http.client.*;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StreamUtils;
@@ -129,7 +122,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 return new ClientHttpResponse() {
                     @Override
                     public HttpStatus getStatusCode() throws IOException {
-                        return finalResponse.getStatusCode();
+                        return HttpStatus.OK;
                     }
                     @Override
                     public int getRawStatusCode() throws IOException {
@@ -912,6 +905,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         if (failedAPI) {
             throw new RuntimeException("Unable to reach SignageOS API. Please check device communicator configuration");
         }
+        aggregatedDevices.values().forEach(this::normalizeDeviceProperties);
         nextDevicesCollectionIterationTimestamp = System.currentTimeMillis();
         return new ArrayList<>(aggregatedDevices.values());
     }
@@ -1664,19 +1658,9 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
     @Override
     protected RestTemplate obtainRestTemplate() throws Exception {
         RestTemplate restTemplate = super.obtainRestTemplate();
-
         List<ClientHttpRequestInterceptor> interceptors = restTemplate.getInterceptors();
         if (!interceptors.contains(headerInterceptor))
             interceptors.add(headerInterceptor);
-
-        final HttpClient httpClient = HttpClients.custom()
-                .setDefaultRequestConfig(RequestConfig.custom()
-                        .setCookieSpec(CookieSpecs.STANDARD).build())
-                .build();
-
-        restTemplate.setRequestFactory(
-                new HttpComponentsClientHttpRequestFactory(httpClient)
-        );
         return restTemplate;
     }
 
@@ -1999,5 +1983,25 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             return bytes;
         }
         return String.valueOf((bytesLong / 1024L) / 1024L);
+    }
+
+    /**
+     * Normalize devices properties, so that they are all standartized:
+     * If the value is "null", null, blank or empty - we should replace them with N/A
+     *
+     * @param device to update properties for
+     * */
+    private void normalizeDeviceProperties(AggregatedDevice device) {
+        Map<String, String> properties = device.getProperties();
+        if (properties == null) {
+            logDebugMessage(String.format("Unable to normalize properties for device with id %s: No properties available.", device.getDeviceId()));
+            return;
+        }
+        for (Map.Entry<String, String> entry: properties.entrySet()) {
+            String value = entry.getValue();
+            if (value == null || StringUtils.isNullOrEmpty(value) || value.equalsIgnoreCase("null")) {
+                entry.setValue("N/A");
+            }
+        }
     }
 }
