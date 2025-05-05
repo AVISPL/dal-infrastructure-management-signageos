@@ -53,7 +53,7 @@ jobs:
       - name: PMD check
         run: mvn pmd:check
       - id: getfilename
-        run: echo "file=$(ls target/symphony-dal-infrastructure-management-signageos-${{ needs.versiongenerate.outputs.version }}.jar)" >> $GITHUB_OUTPUT
+        run: echo "file=$(ls target/symphony-dal-infrastructure-management-signageos-${{ needs.versiongenerate.outputs.version }}-jar-with-dependencies.jar)" >> $GITHUB_OUTPUT
       - name: Remove suffix from filename
         id: rename_file
         run: |
