@@ -21,7 +21,7 @@ public interface Constant {
         String DEVICES = "v2/device?limit=%s";
         String RESOLUTION = "v1/device/%s/resolution";
         String REMOTE_CONTROL = "v1/device/%s/remote-control";
-        String SCREENSHOT = "v1/device/screenshot?deviceUids=%s&limit=%s"; //supports pagination
+        String SCREENSHOT = "v1/device/%s/screenshot?limit=%s"; //supports pagination
         String SCREENSHOT_COMMAND = "v1/device/%s/screenshot";
         String POWER_ACTION = "v1/device/%s/power-action";
         String ACTION_LOG = "v1/device/%s/action-log?limit=%s"; //supports pagination
