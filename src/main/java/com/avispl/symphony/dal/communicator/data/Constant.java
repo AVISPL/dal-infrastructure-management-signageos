@@ -94,7 +94,7 @@ public interface Constant {
         String SCREENSHOT_URI = "Screenshot[%s]#URI";
         String ACTION_LOG_CREATED_AT = "ActionLog[%s]#CreatedAt";
         String ACTION_LOG_FAILED_AT = "ActionLog[%s]#FailedAt";
-        String ACTION_LOG_ORIGINATOR_ACCOUNT_ID = "ActionLog[%s]#OriginatorAccountId";
+        String ACTION_LOG_ORIGINATOR_ACCOUNT_ID = "ActionLog[%s]#OriginatorAccountID";
         String ACTION_LOG_SUCCEEDED_AT = "ActionLog[%s]#SucceededAt";
         String ACTION_LOG_TYPE = "ActionLog[%s]#Type";
         String VPN_ENABLED = "VPN#Enabled";
