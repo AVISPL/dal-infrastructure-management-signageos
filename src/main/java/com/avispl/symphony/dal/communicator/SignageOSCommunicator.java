@@ -76,6 +76,12 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 logDebugMessage("Request interception started.");
                 response = execution.execute(request, body);
 
+                if (request.getMethod().matches("PUT") || request.getMethod().matches("POST")) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Control operation detected: no response wrapper is needed, returning the response.");
+                    }
+                    return response;
+                }
                 int statusCode = response.getRawStatusCode();
                 if (statusCode >= 500 && statusCode < 600) {
                     failedAPI = true;
@@ -806,41 +812,46 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         Map<String, String> properties = device.getProperties();
         List<AdvancedControllableProperty> controls = device.getControllableProperties();
 
-        updateControllableProperty(properties, controls, property, value);
-        switch (property) {
-            case Constant.Properties.SCREEN_RESOLUTION:
-            case Constant.Properties.SCREEN_FRAMERATE:
-            case Constant.Properties.SCREEN_ORIENTATION:
-                updateDeviceResolution(deviceId);
-                break;
-            case Constant.Properties.SCREENSHOT:
-                takeScreenshot(deviceId);
-                break;
-            case Constant.Properties.VOLUME:
-                updateVolume(deviceId, value);
-                break;
-            case Constant.Properties.REMOTE_CONTROL:
-                switchRemoteControl(deviceId, value);
-                break;
-            case Constant.Properties.REBOOT:
-                executePowerAction(PowerAction.SYSTEM_REBOOT, deviceId);
-                break;
-            case Constant.Properties.APP_RESTART:
-                executePowerAction(PowerAction.APP_RESTART, deviceId);
-                break;
-            case Constant.Properties.APPLET_RELOAD:
-                executePowerAction(PowerAction.APPLET_RELOAD, deviceId);
-                break;
-            case Constant.Properties.APPLET_REFRESH:
-                executePowerAction(PowerAction.APPLET_REFRESH, deviceId);
-                break;
-            case Constant.Properties.DEBUG_APPLET:
-            case Constant.Properties.DEBUG_NATIVE:
-                updateDebugMode(deviceId, properties);
-                break;
-            default:
-                logDebugMessage("Unknown control operation " + property);
-                break;
+        try {
+            updateControllableProperty(properties, controls, property, value);
+            switch (property) {
+                case Constant.Properties.SCREEN_RESOLUTION:
+                case Constant.Properties.SCREEN_FRAMERATE:
+                case Constant.Properties.SCREEN_ORIENTATION:
+                    updateDeviceResolution(deviceId);
+                    break;
+                case Constant.Properties.SCREENSHOT:
+                    takeScreenshot(deviceId);
+                    break;
+                case Constant.Properties.VOLUME:
+                    updateVolume(deviceId, value);
+                    break;
+                case Constant.Properties.REMOTE_CONTROL:
+                    switchRemoteControl(deviceId, value);
+                    break;
+                case Constant.Properties.REBOOT:
+                    executePowerAction(PowerAction.SYSTEM_REBOOT, deviceId);
+                    break;
+                case Constant.Properties.APP_RESTART:
+                    executePowerAction(PowerAction.APP_RESTART, deviceId);
+                    break;
+                case Constant.Properties.APPLET_RELOAD:
+                    executePowerAction(PowerAction.APPLET_RELOAD, deviceId);
+                    break;
+                case Constant.Properties.APPLET_REFRESH:
+                    executePowerAction(PowerAction.APPLET_REFRESH, deviceId);
+                    break;
+                case Constant.Properties.DEBUG_APPLET:
+                case Constant.Properties.DEBUG_NATIVE:
+                    updateDebugMode(deviceId, properties);
+                    break;
+                default:
+                    logDebugMessage("Unknown control operation " + property);
+                    break;
+            }
+        } catch (Throwable t) {
+            logger.error("Error during control operation processing", t);
+            disconnect();
         }
     }
 
@@ -967,7 +978,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         controls.stream().filter(controllableProperty -> controllableProperty.getName().equals(property)).findAny().ifPresent(controllableProperty -> {
             String controlValue = String.valueOf(value);
             if (controllableProperty.getType() instanceof AdvancedControllableProperty.Switch) {
-                properties.put(property, "1".equals(String.valueOf(value)) ? "true" : "false");
+                properties.put(property, "1".equals(controlValue) ? "true" : "false");
             } else {
                 properties.put(property, controlValue);
             }
