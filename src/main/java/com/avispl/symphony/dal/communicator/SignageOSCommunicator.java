@@ -965,6 +965,18 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         return super.putExtraRequestHeaders(httpMethod, uri, headers);
     }
 
+    @Override
+    protected <Response> Response doGet(String uri, Class<Response> responseClass) throws Exception {
+        Response response = null;
+        try {
+            response = super.doGet(uri, responseClass);
+        } catch (IllegalStateException ise) {
+            logger.warn("Unable to process request " + uri, ise);
+            disconnect();
+        }
+        return response;
+    }
+
     /**
      * Update controllable property with a new value (for operations like device controls, so adapter and device values are synchronized
      * before the next data collection cycle)
