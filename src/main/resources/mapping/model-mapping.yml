@@ -1,0 +1,54 @@
+models:
+  - model:
+      name: Generic
+      vendor: SignageOS
+      filter: get("uid") != null
+      mapping:
+        type: "AV Devices"
+        category: ""
+        serialNumber: at("/serialNumber")?.asText()
+        deviceId: at("/uid")?.asText()
+        deviceName: at("/name")?.asText()
+        deviceMake: at("/brand")?.asText()
+        deviceModel: at("/model")?.asText()
+        deviceOnline: "false"
+      properties:
+        DUID: at("/duid")
+        CreatedAt: at("/CreatedAt")
+        OSVersion: at("/osVersion")
+        OrganizationUID: at("/organizationUid")
+        LocationUID: at("/locationUid")
+        ConnectionMethod: at("/connectionMethod")
+        System#ApplicationType: at("/applicationType")
+        System#FirmwareVersion: at("/firmwareVersion")
+        Configuration#AppRestart: N/A
+        Configuration#Reboot: N/A
+        Configuration#AppletReload: N/A
+        Configuration#AppletRefresh: N/A
+        Configuration#Screenshot: N/A
+      control:
+        Configuration#Screenshot:
+          type: Button
+          gracePeriod: 0
+          label: Take
+          labelPressed: Take
+        Configuration#AppRestart:
+          type: Button
+          gracePeriod: 0
+          label: Restart
+          labelPressed: Restart
+        Configuration#Reboot:
+          type: Button
+          gracePeriod: 120000
+          label: Reboot
+          labelPressed: Reboot
+        Configuration#AppletReload:
+          type: Button
+          gracePeriod: 0
+          label: Reload
+          labelPressed: Reload
+        Configuration#AppletRefresh:
+          type: Button
+          gracePeriod: 0
+          label: Refresh
+          labelPressed: Refresh
