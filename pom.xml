@@ -130,24 +130,24 @@
     <dependencies>
         <dependency>
             <groupId>com.avispl.symphony.api</groupId>
-            <artifactId>symphony-api-dal</artifactId>
-            <version>${symphonyApiVersion}</version>
+            <artifactId>symphony-api-commons</artifactId>
+            <version>6.2.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/lib/symphony-api-dal-5.15.0.jar</systemPath>
+            <systemPath>${basedir}/lib/symphony-api-commons-6.2.0.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>com.avispl.symphony.api</groupId>
+            <artifactId>symphony-api-dal</artifactId>
+            <version>6.3.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/symphony-api-dal-6.3.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.avispl.symphony.dal</groupId>
             <artifactId>symphony-dal-commons</artifactId>
-            <version>${symphonyApiVersion}</version>
+            <version>6.5.0</version>
             <scope>system</scope>
-            <systemPath>${basedir}/lib/symphony-dal-commons-5.15.0.jar</systemPath>
-        </dependency>
-        <dependency>
-            <groupId>com.avispl.symphony.api</groupId>
-            <artifactId>symphony-api-commons</artifactId>
-            <version>${symphonyApiVersion}</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/symphony-api-commons-5.15.0.jar</systemPath>
+            <systemPath>${basedir}/lib/symphony-dal-commons-6.5.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>org.icmp4j</groupId>
