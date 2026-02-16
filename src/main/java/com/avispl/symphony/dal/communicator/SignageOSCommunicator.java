@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.openjdk.jol.info.ClassLayout;
 import org.springframework.http.*;
 import org.springframework.http.client.*;
 import org.springframework.util.CollectionUtils;
@@ -873,8 +872,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             dynamicStatistics.put(LAST_MONITORING_CYCLE_DURATION_S, String.valueOf(lastMonitoringCycleDuration));
         }
         dynamicStatistics.put(MONITORED_DEVICES_TOTAL, String.valueOf(aggregatedDevices.size()));
-
-        properties.put("RunnerSize(B)", String.valueOf(ClassLayout.parseInstance(this).toPrintable().length()));
         return statistics;
     }
 
