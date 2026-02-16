@@ -47,8 +47,9 @@ public interface Constant {
         String ADAPTER_UPTIME_MIN = "AdapterUptime(min)";
         String ADAPTER_BUILD_DATE = "AdapterBuildDate";
         String ADAPTER_VERSION = "AdapterVersion";
-        String LAST_MONITORING_CYCLE_DURATION_S = "LastMonitoringCycleDuration(s)";
+        String LAST_MONITORING_CYCLE_DURATION_S = "LastMonitoringCycleDuration(sec)";
         String MONITORED_DEVICES_TOTAL = "MonitoredDevicesTotal";
+        String SYSTEM_MONITORING_CYCLE = "MonitoringCycleInterval(min)";
 
         String STORAGE_INTERNAL_CAPACITY = "Storage#InternalCapacity(MB)";
         String STORAGE_INTERNAL_USED = "Storage#InternalUsed(%)";
