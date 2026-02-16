@@ -277,7 +277,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                     // We don't want to fetch devices statuses too often, so by default it's currentTime + 30s
                     // otherwise - the variable is reset by the retrieveMultipleStatistics() call, which
                     // launches devices detailed statistics collection
-                    nextDevicesCollectionIterationTimestamp = System.currentTimeMillis() + (getMonitoringRate() * systemMonitoringCycleInterval);
+                    nextDevicesCollectionIterationTimestamp = System.currentTimeMillis() + (getMonitoringRate() * 60000);
                     lastMonitoringCycleDuration =  Math.max((System.currentTimeMillis() - startCycle) / 1000, 1L);
                     logDebugMessage("Finished collecting devices statistics cycle at " + new Date() + ", total duration: " + lastMonitoringCycleDuration);
                 } catch (Exception e) {
@@ -348,12 +348,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      * {@link #aggregatedDevices} resets it to the currentTime timestamp, which will re-activate data collection.
      */
     private volatile long nextDevicesCollectionIterationTimestamp;
-
-    /**
-     * Current monitoring cycle interval - amount of time that passes between 2 consecutive getMultipleStatistics calls
-     * 60000ms by default
-     * */
-    private final long systemMonitoringCycleInterval = 60000L;
 
     /**
      * Executor that runs all the async operations, that {@link #deviceDataLoader} is posting and
