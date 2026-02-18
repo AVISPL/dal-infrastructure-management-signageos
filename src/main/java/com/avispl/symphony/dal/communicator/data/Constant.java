@@ -82,11 +82,11 @@ public interface Constant {
         String APP_RESTART = "Configuration#AppRestart";
         String APPLET_RELOAD = "Configuration#AppletReload";
         String APPLET_REFRESH = "Configuration#AppletRefresh";
-        String UPTIME_S = "Uptime#Uptime(s)";
+        String UPTIME_S = "Uptime#Uptime(sec)";
         String UPTIME = "Uptime#Uptime";
-        String DOWNTIME_S = "Uptime#Downtime(s)";
+        String DOWNTIME_S = "Uptime#Downtime(sec)";
         String DOWNTIME = "Uptime#Downtime";
-        String UPTIME_TOTAL_S = "Uptime#Total(s)";
+        String UPTIME_TOTAL_S = "Uptime#Total(sec)";
         String UPTIME_TOTAL = "Uptime#Total";
         String UPTIME_SINCE = "Uptime#DateFrom";
         String UPTIME_UNTIL = "Uptime#DateTo";
@@ -95,7 +95,7 @@ public interface Constant {
         String SCREENSHOT_URI = "Screenshot[%s]#URI";
         String ACTION_LOG_CREATED_AT = "ActionLog[%s]#CreatedAt";
         String ACTION_LOG_FAILED_AT = "ActionLog[%s]#FailedAt";
-        String ACTION_LOG_ORIGINATOR_ACCOUNT_ID = "ActionLog[%s]#OriginatorAccountId";
+        String ACTION_LOG_ORIGINATOR_ACCOUNT_ID = "ActionLog[%s]#OriginatorAccountID";
         String ACTION_LOG_SUCCEEDED_AT = "ActionLog[%s]#SucceededAt";
         String ACTION_LOG_TYPE = "ActionLog[%s]#Type";
         String VPN_ENABLED = "VPN#Enabled";
