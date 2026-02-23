@@ -276,7 +276,12 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                     // We don't want to fetch devices statuses too often, so by default it's currentTime + 30s
                     // otherwise - the variable is reset by the retrieveMultipleStatistics() call, which
                     // launches devices detailed statistics collection
-                    nextDevicesCollectionIterationTimestamp = System.currentTimeMillis() + (getMonitoringRate() * 60000);
+                    try {
+                        nextDevicesCollectionIterationTimestamp = System.currentTimeMillis() + (getMonitoringRate() * 60000L);
+                    } catch (NoSuchMethodError nsme) {
+                        nextDevicesCollectionIterationTimestamp = System.currentTimeMillis() + 60000L;
+                        logger.warn("Unsupported feature: getMonitoringRate isn't available on current Cloud Connector version.", nsme);
+                    }
                     lastMonitoringCycleDuration =  Math.max((System.currentTimeMillis() - startCycle) / 1000, 1L);
                     logDebugMessage("Finished collecting devices statistics cycle at " + new Date() + ", total duration: " + lastMonitoringCycleDuration);
                 } catch (Exception e) {
@@ -866,7 +871,11 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         long adapterUptime = System.currentTimeMillis() - adapterInitializationTimestamp;
         properties.put(ADAPTER_UPTIME_MIN, String.valueOf(adapterUptime / (1000*60)));
         properties.put(ADAPTER_UPTIME, normalizeUptime(adapterUptime/1000));
-        properties.put(SYSTEM_MONITORING_CYCLE, String.valueOf(getMonitoringRate()));
+        try {
+            properties.put(SYSTEM_MONITORING_CYCLE, String.valueOf(getMonitoringRate()));
+        } catch (NoSuchMethodError nsme) {
+            logger.warn("Unsupported feature: getMonitoringRate isn't available on current Cloud Connector version.", nsme);
+        }
 
         if (lastMonitoringCycleDuration != null) {
             dynamicStatistics.put(LAST_MONITORING_CYCLE_DURATION_S, String.valueOf(lastMonitoringCycleDuration));
