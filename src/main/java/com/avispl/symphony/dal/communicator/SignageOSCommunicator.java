@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.openjdk.jol.info.ClassLayout;
 import org.springframework.http.*;
 import org.springframework.http.client.*;
 import org.springframework.util.CollectionUtils;
@@ -175,7 +174,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             logDebugMessage("Entering device data loader active stage.");
             mainloop:
             while (inProgress) {
-                long startCycle = System.currentTimeMillis();
                 try {
                     try {
                         TimeUnit.MILLISECONDS.sleep(500);
@@ -194,6 +192,16 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                         logDebugMessage("The device communicator is paused, data collector is not active.");
                         continue mainloop;
                     }
+
+                    while (nextDevicesCollectionIterationTimestamp > System.currentTimeMillis()) {
+                        try {
+                            TimeUnit.MILLISECONDS.sleep(1000);
+                        } catch (InterruptedException e) {
+                            //
+                        }
+                    }
+
+                    long startCycle = System.currentTimeMillis();
                     try {
                         logDebugMessage("Fetching devices list.");
                         fetchDevices();
@@ -210,14 +218,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                     if (aggregatedDevicesCount == 0) {
                         logDebugMessage("No devices collected in the main data collection thread so far. Continuing.");
                         continue mainloop;
-                    }
-
-                    while (nextDevicesCollectionIterationTimestamp > System.currentTimeMillis()) {
-                        try {
-                            TimeUnit.MILLISECONDS.sleep(1000);
-                        } catch (InterruptedException e) {
-                            //
-                        }
                     }
 
                     for (AggregatedDevice aggregatedDevice : aggregatedDevices.values()) {
@@ -263,9 +263,13 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                     // We don't want to fetch devices statuses too often, so by default it's currentTime + 30s
                     // otherwise - the variable is reset by the retrieveMultipleStatistics() call, which
                     // launches devices detailed statistics collection
-                    nextDevicesCollectionIterationTimestamp = System.currentTimeMillis() + 30000;
-
-                    lastMonitoringCycleDuration = (System.currentTimeMillis() - startCycle) / 1000;
+                    try {
+                        nextDevicesCollectionIterationTimestamp = System.currentTimeMillis() + (getMonitoringRate() * 60000L);
+                    } catch (NoSuchMethodError nsme) {
+                        nextDevicesCollectionIterationTimestamp = System.currentTimeMillis() + 60000L;
+                        logger.warn("Unsupported feature: getMonitoringRate isn't available on current Cloud Connector version.", nsme);
+                    }
+                    lastMonitoringCycleDuration =  Math.max((System.currentTimeMillis() - startCycle) / 1000, 1L);
                     logDebugMessage("Finished collecting devices statistics cycle at " + new Date() + ", total duration: " + lastMonitoringCycleDuration);
                 } catch (Exception e) {
                     logger.error("Unexpected error occurred during main device collection cycle", e);
@@ -882,13 +886,16 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         long adapterUptime = System.currentTimeMillis() - adapterInitializationTimestamp;
         properties.put(ADAPTER_UPTIME_MIN, String.valueOf(adapterUptime / (1000*60)));
         properties.put(ADAPTER_UPTIME, normalizeUptime(adapterUptime/1000));
+        try {
+            properties.put(SYSTEM_MONITORING_CYCLE, String.valueOf(getMonitoringRate()));
+        } catch (NoSuchMethodError nsme) {
+            logger.warn("Unsupported feature: getMonitoringRate isn't available on current Cloud Connector version.", nsme);
+        }
 
         if (lastMonitoringCycleDuration != null) {
             dynamicStatistics.put(LAST_MONITORING_CYCLE_DURATION_S, String.valueOf(lastMonitoringCycleDuration));
         }
         dynamicStatistics.put(MONITORED_DEVICES_TOTAL, String.valueOf(aggregatedDevices.size()));
-
-        properties.put("RunnerSize(B)", String.valueOf(ClassLayout.parseInstance(this).toPrintable().length()));
         return statistics;
     }
 
@@ -1951,13 +1958,13 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
     }
 
     /**
-     * Uptime is received in seconds, need to normalize it and make it human readable, like
-     * 1 day(s) 5 hour(s) 12 minute(s) 55 minute(s)
+     * Uptime is received in seconds, need to normalize it and make it human-readable, like
+     * 1 day 5 hour 12 minute 55 minute
      * Incoming parameter is may have a decimal point, so in order to safely process this - it's rounded first.
      * We don't need to add a segment of time if it's 0.
      *
      * @param uptimeSeconds value in seconds
-     * @return string value of format 'x day(s) x hour(s) x minute(s) x minute(s)'
+     * @return string value of format 'x d x hr x min x sec'
      */
     private String normalizeUptime(long uptimeSeconds) {
         StringBuilder normalizedUptime = new StringBuilder();
@@ -1968,16 +1975,16 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         long days = uptimeSeconds / 86400;
 
         if (days > 0) {
-            normalizedUptime.append(days).append(" day(s) ");
+            normalizedUptime.append(days).append(" d ");
         }
         if (hours > 0) {
-            normalizedUptime.append(hours).append(" hour(s) ");
+            normalizedUptime.append(hours).append(" hr ");
         }
         if (minutes > 0) {
-            normalizedUptime.append(minutes).append(" minute(s) ");
+            normalizedUptime.append(minutes).append(" min ");
         }
         if (seconds > 0) {
-            normalizedUptime.append(seconds).append(" second(s)");
+            normalizedUptime.append(seconds).append(" sec");
         }
         return normalizedUptime.toString().trim();
     }

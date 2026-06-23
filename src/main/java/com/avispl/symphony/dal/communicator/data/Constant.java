@@ -47,8 +47,9 @@ public interface Constant {
         String ADAPTER_UPTIME_MIN = "AdapterUptime(min)";
         String ADAPTER_BUILD_DATE = "AdapterBuildDate";
         String ADAPTER_VERSION = "AdapterVersion";
-        String LAST_MONITORING_CYCLE_DURATION_S = "LastMonitoringCycleDuration(s)";
+        String LAST_MONITORING_CYCLE_DURATION_S = "LastMonitoringCycleDuration(sec)";
         String MONITORED_DEVICES_TOTAL = "MonitoredDevicesTotal";
+        String SYSTEM_MONITORING_CYCLE = "MonitoringCycleInterval(min)";
 
         String STORAGE_INTERNAL_CAPACITY = "Storage#InternalCapacity(MB)";
         String STORAGE_INTERNAL_USED = "Storage#InternalUsed(%)";
@@ -81,11 +82,11 @@ public interface Constant {
         String APP_RESTART = "Configuration#AppRestart";
         String APPLET_RELOAD = "Configuration#AppletReload";
         String APPLET_REFRESH = "Configuration#AppletRefresh";
-        String UPTIME_S = "Uptime#Uptime(s)";
+        String UPTIME_S = "Uptime#Uptime(sec)";
         String UPTIME = "Uptime#Uptime";
-        String DOWNTIME_S = "Uptime#Downtime(s)";
+        String DOWNTIME_S = "Uptime#Downtime(sec)";
         String DOWNTIME = "Uptime#Downtime";
-        String UPTIME_TOTAL_S = "Uptime#Total(s)";
+        String UPTIME_TOTAL_S = "Uptime#Total(sec)";
         String UPTIME_TOTAL = "Uptime#Total";
         String UPTIME_SINCE = "Uptime#DateFrom";
         String UPTIME_UNTIL = "Uptime#DateTo";
