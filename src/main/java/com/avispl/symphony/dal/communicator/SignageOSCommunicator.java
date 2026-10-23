@@ -76,7 +76,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
             try {
                 response = execution.execute(request, body);
 
-                int statusCode = response.getRawStatusCode();
+                int statusCode = response.getStatusCode().value();
                 if (response.getStatusCode().is5xxServerError()) {
                     failedAPI = true;
                 } else {
@@ -96,9 +96,11 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 HttpHeaders headers = response.getHeaders();
                 StringBuilder link = new StringBuilder();
                 boolean containsLink = false;
-                if (headers.containsKey("Link")) {
+                // getFirst() instead of containsKey()/get(): those have different signatures in Spring 6 and 7
+                String linkHeader = headers.getFirst("Link");
+                if (linkHeader != null) {
                     containsLink = true;
-                    link.append(headers.get("Link").get(0));
+                    link.append(linkHeader);
                 }
 
                 ByteArrayOutputStream buffer = new ByteArrayOutputStream();
@@ -122,10 +124,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                     @Override
                     public HttpStatus getStatusCode() throws IOException {
                         return HttpStatus.OK;
-                    }
-                    @Override
-                    public int getRawStatusCode() throws IOException {
-                        return finalResponse.getRawStatusCode();
                     }
                     @Override
                     public String getStatusText() throws IOException {
