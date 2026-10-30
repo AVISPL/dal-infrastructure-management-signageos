@@ -6,7 +6,7 @@
 
     <groupId>com.avispl.symphony.dal.communicator.signageos</groupId>
     <artifactId>symphony-dal-infrastructure-management-signageos</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <properties>
         <symphonyApiVersion>RELEASE</symphonyApiVersion>
         <timestamp>${maven.build.timestamp}</timestamp>
@@ -191,7 +191,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.14.2</version>
+            <version>2.18.9</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -230,12 +230,6 @@
             <version>5.4.4</version>
             <scope>provided</scope>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.apache.httpcomponents</groupId>-->
-<!--            <artifactId>httpclient</artifactId>-->
-<!--            <version>4.5.4</version>-->
-<!--            <scope>provided</scope>-->
-<!--        </dependency>-->
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna-platform</artifactId>

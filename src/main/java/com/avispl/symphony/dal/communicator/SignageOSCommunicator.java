@@ -30,8 +30,10 @@ import org.springframework.util.StreamUtils;
 import org.springframework.web.client.RestTemplate;
 
 import javax.security.auth.login.FailedLoginException;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -72,17 +74,10 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
             ClientHttpResponse response = null;
             try {
-                logDebugMessage("Request interception started.");
                 response = execution.execute(request, body);
 
-                if (request.getMethod().matches("PUT") || request.getMethod().matches("POST")) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Control operation detected: no response wrapper is needed, returning the response.");
-                    }
-                    return response;
-                }
-                int statusCode = response.getRawStatusCode();
-                if (statusCode >= 500 && statusCode < 600) {
+                int statusCode = response.getStatusCode().value();
+                if (response.getStatusCode().is5xxServerError()) {
                     failedAPI = true;
                 } else {
                     failedAPI = false;
@@ -93,7 +88,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                     failedLogin = false;
                 }
                 String requestPath = request.getURI().getPath();
-                logDebugMessage(String.format("Request %s resulted with response code %s", requestPath, statusCode));
                 // Return for all uris that do not require additional processing
                 if (!requestPath.contains("/device")) {
                     return response;
@@ -102,9 +96,11 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 HttpHeaders headers = response.getHeaders();
                 StringBuilder link = new StringBuilder();
                 boolean containsLink = false;
-                if (headers.containsKey("Link")) {
+                // getFirst() instead of containsKey()/get(): those have different signatures in Spring 6 and 7
+                String linkHeader = headers.getFirst("Link");
+                if (linkHeader != null) {
                     containsLink = true;
-                    link.append(headers.get("Link").get(0));
+                    link.append(linkHeader);
                 }
 
                 ByteArrayOutputStream buffer = new ByteArrayOutputStream();
@@ -113,7 +109,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 // Convert the byte array to a string (if you want to modify it as a JSON response)
                 JsonNode jsonResponse = objectMapper.readTree(buffer.toString(StandardCharsets.UTF_8.name()));
                 String modifiedResponse;
-                logDebugMessage("Received json response: " + jsonResponse);
                 if (jsonResponse.isArray()) {
                     ObjectNode responseBody = objectMapper.createObjectNode();
                     if (containsLink) {
@@ -124,15 +119,31 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                 } else {
                     modifiedResponse = jsonResponse.toString();
                 }
-                logDebugMessage("Generated internal modified response: " + modifiedResponse);
-                try {
-                    logDebugMessage("Attempting to load up spring6 ClientHttpResponse...");
-                    return new com.avispl.symphony.dal.communicator.spring6.ModifiedClientHttpResponse(finalResponse, modifiedResponse, statusCode);
-                } catch (NoClassDefFoundError noClassDefFoundError) {
-                    logDebugMessage("Spring6 ClientHttpResponse failed. Falling back to spring5.");
-                    return new com.avispl.symphony.dal.communicator.spring5.ModifiedClientHttpResponse(finalResponse, modifiedResponse, statusCode);
-                }
-            } catch (Throwable e) {
+
+                return new ClientHttpResponse() {
+                    @Override
+                    public HttpStatus getStatusCode() throws IOException {
+                        return HttpStatus.OK;
+                    }
+                    @Override
+                    public String getStatusText() throws IOException {
+                        return finalResponse.getStatusText();
+                    }
+                    @Override
+                    public void close() {
+                        finalResponse.close();
+                    }
+                    @Override
+                    public InputStream getBody() {
+                        return new ByteArrayInputStream(modifiedResponse.getBytes(StandardCharsets.UTF_8));
+                    }
+                    @Override
+                    public HttpHeaders getHeaders() {
+                        return finalResponse.getHeaders();
+                    }
+                };
+            } catch (Exception e) {
+                //knownErrors.put(LOGIN_ERROR_KEY, e.getMessage());
                 logger.error("An exception occurred during request execution", e);
             }
             return response;
@@ -341,11 +352,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
     private volatile long nextDevicesCollectionIterationTimestamp;
 
     /**
-     * Number of threads assigned for the data collection jobs
-     * */
-    private int executorServiceThreadCount = 5;
-
-    /**
      * Executor that runs all the async operations, that {@link #deviceDataLoader} is posting and
      * {@link #devicesExecutionPool} is keeping track of
      */
@@ -473,7 +479,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         adapterProperties = new Properties();
         adapterProperties.load(getClass().getResourceAsStream("/version.properties"));
 
-        executorService = Executors.newFixedThreadPool(executorServiceThreadCount);
+        executorService = Executors.newFixedThreadPool(5);
         executorService.submit(deviceDataLoader = new SignageOSDataLoader());
     }
 
@@ -493,24 +499,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      */
     public void setMetadataRetrievalInterval(Integer metadataRetrievalInterval) {
         this.metadataRetrievalInterval = metadataRetrievalInterval;
-    }
-
-    /**
-     * Retrieves {@link #executorServiceThreadCount}
-     *
-     * @return value of {@link #executorServiceThreadCount}
-     */
-    public int getExecutorServiceThreadCount() {
-        return executorServiceThreadCount;
-    }
-
-    /**
-     * Sets {@link #executorServiceThreadCount} value
-     *
-     * @param executorServiceThreadCount new value of {@link #executorServiceThreadCount}
-     */
-    public void setExecutorServiceThreadCount(int executorServiceThreadCount) {
-        this.executorServiceThreadCount = executorServiceThreadCount;
     }
 
     /**
@@ -816,46 +804,41 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         Map<String, String> properties = device.getProperties();
         List<AdvancedControllableProperty> controls = device.getControllableProperties();
 
-        try {
-            updateControllableProperty(properties, controls, property, value);
-            switch (property) {
-                case Constant.Properties.SCREEN_RESOLUTION:
-                case Constant.Properties.SCREEN_FRAMERATE:
-                case Constant.Properties.SCREEN_ORIENTATION:
-                    updateDeviceResolution(deviceId);
-                    break;
-                case Constant.Properties.SCREENSHOT:
-                    takeScreenshot(deviceId);
-                    break;
-                case Constant.Properties.VOLUME:
-                    updateVolume(deviceId, value);
-                    break;
-                case Constant.Properties.REMOTE_CONTROL:
-                    switchRemoteControl(deviceId, value);
-                    break;
-                case Constant.Properties.REBOOT:
-                    executePowerAction(PowerAction.SYSTEM_REBOOT, deviceId);
-                    break;
-                case Constant.Properties.APP_RESTART:
-                    executePowerAction(PowerAction.APP_RESTART, deviceId);
-                    break;
-                case Constant.Properties.APPLET_RELOAD:
-                    executePowerAction(PowerAction.APPLET_RELOAD, deviceId);
-                    break;
-                case Constant.Properties.APPLET_REFRESH:
-                    executePowerAction(PowerAction.APPLET_REFRESH, deviceId);
-                    break;
-                case Constant.Properties.DEBUG_APPLET:
-                case Constant.Properties.DEBUG_NATIVE:
-                    updateDebugMode(deviceId, properties);
-                    break;
-                default:
-                    logDebugMessage("Unknown control operation " + property);
-                    break;
-            }
-        } catch (Throwable t) {
-            logger.error("Error during control operation processing", t);
-            disconnect();
+        updateControllableProperty(properties, controls, property, value);
+        switch (property) {
+            case Constant.Properties.SCREEN_RESOLUTION:
+            case Constant.Properties.SCREEN_FRAMERATE:
+            case Constant.Properties.SCREEN_ORIENTATION:
+                updateDeviceResolution(deviceId);
+                break;
+            case Constant.Properties.SCREENSHOT:
+                takeScreenshot(deviceId);
+                break;
+            case Constant.Properties.VOLUME:
+                updateVolume(deviceId, value);
+                break;
+            case Constant.Properties.REMOTE_CONTROL:
+                switchRemoteControl(deviceId, value);
+                break;
+            case Constant.Properties.REBOOT:
+                executePowerAction(PowerAction.SYSTEM_REBOOT, deviceId);
+                break;
+            case Constant.Properties.APP_RESTART:
+                executePowerAction(PowerAction.APP_RESTART, deviceId);
+                break;
+            case Constant.Properties.APPLET_RELOAD:
+                executePowerAction(PowerAction.APPLET_RELOAD, deviceId);
+                break;
+            case Constant.Properties.APPLET_REFRESH:
+                executePowerAction(PowerAction.APPLET_REFRESH, deviceId);
+                break;
+            case Constant.Properties.DEBUG_APPLET:
+            case Constant.Properties.DEBUG_NATIVE:
+                updateDebugMode(deviceId, properties);
+                break;
+            default:
+                logDebugMessage("Unknown control operation " + property);
+                break;
         }
     }
 
@@ -901,7 +884,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
 
     @Override
     protected void internalInit() throws Exception {
-        logDebugMessage("internalInit() is called.");
         serviceRunning = true;
         long currentTimestamp = System.currentTimeMillis();
         validRetrieveStatisticsTimestamp = currentTimestamp + retrieveStatisticsTimeOut;
@@ -911,38 +893,17 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
 
     @Override
     protected void internalDestroy() {
-        logDebugMessage("internalDestroy() is called.");
-        try {
-            serviceRunning = false;
-            if (deviceDataLoader != null) {
-                deviceDataLoader.stop();
-                deviceDataLoader = null;
-            }
-            if (executorService != null) {
-                executorService.shutdownNow();
-                executorService = null;
-            }
-            devicesExecutionPool.forEach(future -> future.cancel(true));
-            devicesExecutionPool.clear();
-        } catch (Exception e) {
-            logger.error("Error during adapter internalDestroy operation", e);
-        } finally {
-            super.internalDestroy();
+        serviceRunning = false;
+        if (deviceDataLoader != null) {
+            deviceDataLoader.stop();
+            deviceDataLoader = null;
         }
+        super.internalDestroy();
     }
 
     @Override
     public List<AggregatedDevice> retrieveMultipleStatistics() throws Exception {
-        logger.debug("RetrieveMultipleStatistics is called!");
         updateValidRetrieveStatisticsTimestamp();
-        if (executorService == null) {
-            logger.warn("No executor service found, creating executor service.");
-            // Due to the bug that after changing properties on fly - the adapter is destroyed but adapter is not initialized properly,
-            // so executor service is not running. We need to make sure executorService exists
-            executorService = Executors.newFixedThreadPool(executorServiceThreadCount);
-            executorService.submit(deviceDataLoader = new SignageOSDataLoader());
-            serviceRunning = true;
-        }
         if (failedLogin) {
             throw new FailedLoginException("Unable to authorize. Please check SignageOS ClientID and ClientSecret");
         }
@@ -972,18 +933,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         return super.putExtraRequestHeaders(httpMethod, uri, headers);
     }
 
-    @Override
-    protected <Response> Response doGet(String uri, Class<Response> responseClass) throws Exception {
-        Response response = null;
-        try {
-            response = super.doGet(uri, responseClass);
-        } catch (IllegalStateException ise) {
-            logger.warn("Unable to process request " + uri, ise);
-            disconnect();
-        }
-        return response;
-    }
-
     /**
      * Update controllable property with a new value (for operations like device controls, so adapter and device values are synchronized
      * before the next data collection cycle)
@@ -997,7 +946,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         controls.stream().filter(controllableProperty -> controllableProperty.getName().equals(property)).findAny().ifPresent(controllableProperty -> {
             String controlValue = String.valueOf(value);
             if (controllableProperty.getType() instanceof AdvancedControllableProperty.Switch) {
-                properties.put(property, "1".equals(controlValue) ? "true" : "false");
+                properties.put(property, "1".equals(String.valueOf(value)) ? "true" : "false");
             } else {
                 properties.put(property, controlValue);
             }
@@ -1019,12 +968,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         }
         List<AggregatedDevice> devices = new ArrayList<>();
         processPaginatedResponse(buildFilteredUrl(String.format(Constant.URI.DEVICES, requestPageSize)), (page) -> {
-            logDebugMessage("Received devices page: " + page);
-            try {
-                devices.addAll(aggregatedDeviceProcessor.extractDevices(page));
-            } catch (Exception e) {
-                logger.error("Error during device metadata processing.", e);
-            }
+            devices.addAll(aggregatedDeviceProcessor.extractDevices(page));
         });
         metadataRetrievalTimestamp = currentTimestamp;
 
@@ -1718,14 +1662,10 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
      */
     @Override
     protected RestTemplate obtainRestTemplate() throws Exception {
-        logDebugMessage("obtainRestTempate() is called.");
         RestTemplate restTemplate = super.obtainRestTemplate();
         List<ClientHttpRequestInterceptor> interceptors = restTemplate.getInterceptors();
-        logDebugMessage("Adding header interceptor to the interceptors list.");
-        if (!interceptors.contains(headerInterceptor)) {
+        if (!interceptors.contains(headerInterceptor))
             interceptors.add(headerInterceptor);
-            logDebugMessage("Added header interceptor to the interceptors list.");
-        }
         return restTemplate;
     }
 
@@ -1833,7 +1773,7 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
         boolean hasNextPage = true;
         String nextPageLink = null;
         while(hasNextPage) {
-            logDebugMessage(String.format("Receiving %s page with link: %s", url, nextPageLink));
+            logDebugMessage(String.format("Receiving page with link: %s", nextPageLink));
             if (StringUtils.isNullOrEmpty(nextPageLink)) {
                 devices = doGetWithRetry(url);
             } else {
@@ -1888,8 +1828,6 @@ public class SignageOSCommunicator extends RestCommunicator implements Aggregato
                     criticalError = true;
                     logger.error(String.format("SignageOS API error %s while retrieving %s data", e.getStatusCode(), url), e);
                     break;
-                } else {
-                    logger.error("SignageOS API Error: too many requests.");
                 }
             } catch (FailedLoginException fle) {
                 lastError = fle;
